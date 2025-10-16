@@ -8,6 +8,11 @@ import jwt from 'jsonwebtoken';
 const PORT = process.env.PORT || 5000;
 const SECRET_KEY = process.env.SECRET_KEY || 'Temp-Secret-Key';
 
+// mongoose
+mongoose.connect('mongodb://localhost:27017/attendance')
+.then(()=>console.log(`Database connected`))
+.catch((err)=>console.log(`Can't connect to database : ${err}`));
+
 // App
 const app = express();
 
@@ -104,6 +109,7 @@ const authenticate = (req : AuthRequest, res : Response, next : NextFunction)=>{
 
         const decoded = jwt.verify(token, SECRET_KEY) as {userId : string};
         req.user = decoded;
+        next();
     }
     catch(err){
         next(new AppError(`Can't authenticate : ${err}`, 500));
@@ -132,6 +138,7 @@ app.post('/register', async (req : Request, res : Response, next : NextFunction)
             password : password
         });
 
+        await newAdmin.save();
         const {password : _, ...userWithoutPassword} = newAdmin.toObject();
 
         res.status(201).json({Msg : "User Created", userWithoutPassword});
@@ -171,10 +178,67 @@ app.post('/login', async (req : Request, res : Response, next : NextFunction)=>{
 });
 
 
+app.post('/student', authenticate, async (req : Request, res : Response, next : NextFunction)=>{
+    try{
+        // Required - name, enrollment_number, department, mor_shift(bool), batch, semester (number)
+        // not required - section, phone_no and address
+
+        const {name, enrollment_number, department, mor_shift = true, 
+            batch, semester=1, section, phone_no, address} = req.body;
+        
+        if(!enrollment_number)
+            return next(new AppError(`You must provide enrollement number`, 400));
+
+        const normalizedEnrollmentNumber = enrollment_number.replace(/^0+/, '') || '0';
+        
+        if(!name || !department || !batch){
+            return next(new AppError(`You must include all details - name, enrollment_number, department, 
+                mor_shift, batch, semester`, 400));
+        }
+
+        const student = await Student.findOne({enrollment_number : normalizedEnrollmentNumber});
+        if(student)
+            return next(new AppError(`Student already exist`, 400));
+
+        const newStudent = new Student({
+            name : name,
+            enrollment_number : normalizedEnrollmentNumber,
+            address : address,
+            batch : batch,
+            department : department,
+            semester : semester,
+            mor_shift : mor_shift,
+            phone_no : phone_no,
+            section : section
+        });
+        console.log('Reaching here');
+        await newStudent.save();
+        res.status(201).json({Msg : "Student added", newStudent});
+    }
+    catch(err){
+        next(new AppError(`Can't add the student : ${err}`));
+    }
+});
+
+
+app.post('/entry', async (req : Request, res : Response, next : NextFunction)=>{
+    try{
+        const {enrollment_number} = req.body;
+
+        const student = await Student.findOne({enrollment_number});
+        if(!student)
+            return next(new AppError(`No student with this enrollment number`, 400));
 
 
 
-app.get('/', (req: Request, res: Response) => {
+    }
+    catch(err){
+        next(new AppError(`Can't process entry : ${err}`, 500));
+    }
+});
+
+
+app.get('/', authenticate, (req: Request, res: Response) => {
   res.json({
     message: 'Hello from Express + TypeScript!',
     timestamp: new Date().toISOString()
