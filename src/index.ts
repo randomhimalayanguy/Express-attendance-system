@@ -24,6 +24,11 @@ class AppError extends Error{
     }
 }
 
+// Helping functions - 
+const getNormalizedNumber = (enroll : string)=>{
+    return enroll.replace(/^0+/, '') || '0';
+}
+
 
 // Interfaces
 interface AuthRequest extends Request{
@@ -82,10 +87,11 @@ adminSchema.pre('save', async function(next) {
 
 
 const logSchema = new Schema<ILog>({
-    student_id : {type : Schema.Types.ObjectId, requried : true, ref : 'Student'},
+    student_id : {type : Schema.Types.ObjectId, required : true, ref : 'Student'},
     status : {type : Boolean, default : false}
 },{timestamps : true});
 
+logSchema.index({student_id : 1, createdAt : -1});
 
 // Models
 const Student = mongoose.model('Student', studentSchema);
@@ -114,7 +120,6 @@ const authenticate = (req : AuthRequest, res : Response, next : NextFunction)=>{
     catch(err){
         next(new AppError(`Can't authenticate : ${err}`, 500));
     }
-
 };
 
 
@@ -170,10 +175,10 @@ app.post('/login', async (req : Request, res : Response, next : NextFunction)=>{
 
         const {password : _, ...userWithoutPassword} = admin.toObject();
 
-        res.status(201).json({Msg : "Logged in", userWithoutPassword, token});
+        res.status(200).json({Msg : "Logged in", userWithoutPassword, token});
     }
     catch(err){
-        next(new AppError(`Can't register the user : ${err}`, 500));
+        next(new AppError(`Can't login the user : ${err}`, 500));
     }
 });
 
@@ -189,7 +194,7 @@ app.post('/student', authenticate, async (req : Request, res : Response, next : 
         if(!enrollment_number)
             return next(new AppError(`You must provide enrollement number`, 400));
 
-        const normalizedEnrollmentNumber = enrollment_number.replace(/^0+/, '') || '0';
+        const normalizedEnrollmentNumber = getNormalizedNumber(enrollment_number);
         
         if(!name || !department || !batch){
             return next(new AppError(`You must include all details - name, enrollment_number, department, 
@@ -211,7 +216,6 @@ app.post('/student', authenticate, async (req : Request, res : Response, next : 
             phone_no : phone_no,
             section : section
         });
-        console.log('Reaching here');
         await newStudent.save();
         res.status(201).json({Msg : "Student added", newStudent});
     }
@@ -224,19 +228,71 @@ app.post('/student', authenticate, async (req : Request, res : Response, next : 
 app.post('/entry', async (req : Request, res : Response, next : NextFunction)=>{
     try{
         const {enrollment_number} = req.body;
+        const normalizedEnrollmentNumber = getNormalizedNumber(enrollment_number);
 
-        const student = await Student.findOne({enrollment_number});
+        const student = await Student.findOne({enrollment_number : normalizedEnrollmentNumber});
         if(!student)
-            return next(new AppError(`No student with this enrollment number`, 400));
+            return next(new AppError(`No student with this enrollment number`, 404));
 
+        const startTime = new Date();
+        startTime.setHours(0, 0, 0, 0);
 
+        const endTime = new Date();
+        endTime.setHours(23, 59, 59, 999);
 
+        // Latest log for this student - 
+        const log = await Log.findOne({student_id : student._id, 
+            createdAt : {
+                $gte : startTime,
+                $lte : endTime
+            }
+        }).sort({createdAt : -1});
+
+        const newStatus = log ? !log.status : true;
+
+        const newLog = new Log({
+            student_id : student._id,
+            status : newStatus
+        });
+
+        await newLog.save();
+
+        const logWithUser = await newLog.populate('student_id', 'name');
+        res.status(201).json({Msg : "Logged", logWithUser});
     }
     catch(err){
         next(new AppError(`Can't process entry : ${err}`, 500));
     }
 });
 
+
+app.get('/analytics', authenticate, async (req : Request, res : Response, next : NextFunction)=>{
+    try{
+        const startTime = new Date();
+        startTime.setHours(0, 0, 0, 0);
+        const endTime = new Date();
+        endTime.setHours(23, 59, 59, 999);
+
+        const insideStudents = await Log.aggregate([
+            {$match : {createdAt : {$gte : startTime, $lte : endTime}}},
+            {$sort : {createdAt : -1}},
+            {$group : {_id : "$student_id", latestStatus : {$first : "$status"}}},
+            {$match : {latestStatus : true}},
+            {$count : "studentsInside"}
+        ]);
+
+        const count = insideStudents.length > 0 ? insideStudents[0].studentsInside : 0;
+
+        res.status(200).json({ 
+            message: "Students currently inside", 
+            date: new Date().toISOString().split('T')[0], 
+            count
+        });
+    }
+    catch(err){
+        next(new AppError(`Can't load analytics : ${err}`, 500));
+    }
+});
 
 app.get('/', authenticate, (req: Request, res: Response) => {
   res.json({
