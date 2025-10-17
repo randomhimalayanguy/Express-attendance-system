@@ -215,6 +215,8 @@ app.post('/login', async (req : Request, res : Response, next : NextFunction)=>{
 
 app.get('/student', authenticate, validate, async (req : Request, res : Response, next : NextFunction)=>{
     try{
+        // Add filters like Shift, Department, Batch, etc. using query
+
         const skip = parseInt(String(req.query.skip));
         const limit = parseInt(String(req.query.limit));
 
@@ -270,9 +272,9 @@ app.post('/student', authenticate, async (req : Request, res : Response, next : 
 });
 
 
-app.delete('/student', authenticate, async (req : Request, res : Response, next : NextFunction)=>{
+app.delete('/student/:enroll', authenticate, async (req : Request, res : Response, next : NextFunction)=>{
     try{
-        const {enrollment_number} = req.body;
+        const enrollment_number = req.params.enroll;
         if(!enrollment_number)
             return next(new AppError(`You must provide enrollment number`, 400));
 
@@ -290,6 +292,41 @@ app.delete('/student', authenticate, async (req : Request, res : Response, next 
 });
 
 
+app.patch('/student/:enroll', authenticate, async (req : Request, res : Response, next : NextFunction)=>{
+    try{
+        const enrollment_number = req.params.enroll;
+        if(!enrollment_number)
+            return next(new AppError(`You must provide enrollment number`, 400));
+
+        const normalizedEnrollmentNumber = getNormalizedNumber(enrollment_number);
+
+        const student = await Student.findOne({enrollment_number : normalizedEnrollmentNumber});
+        if(!student)
+            return next(new AppError(`Student does not exist`, 404));
+
+        const {name =  student.name,
+            batch = student.batch,
+            department = student.department,
+            semester = student.semester,
+            mor_shift = student.mor_shift,
+            phone_no = student.phone_no,
+            section =  student.section,
+            address = student.address
+        } = req.body; 
+
+        const updatedStudent = await Student.findOneAndUpdate({
+            name, batch, department, semester, mor_shift, phone_no, section, address
+        });
+
+        res.status(201).json({Msg : "Student info updated", updatedStudent});
+    }
+    catch(err){
+        next(new AppError(`Can't update the student : ${err}`, 500));
+    }
+});
+
+
+// Other rotues
 app.post('/entry', async (req : Request, res : Response, next : NextFunction)=>{
     try{
         const {enrollment_number} = req.body;
@@ -317,7 +354,7 @@ app.post('/entry', async (req : Request, res : Response, next : NextFunction)=>{
         await newLog.save();
 
         const logWithUser = await newLog.populate('student_id', 'name');
-        res.status(201).json({Msg : "Logged", logWithUser});
+        res.status(201).json({Msg : `Logged ${logWithUser.status ? 'in':'out'}`, logWithUser});
     }
     catch(err){
         next(new AppError(`Can't process entry : ${err}`, 500));
