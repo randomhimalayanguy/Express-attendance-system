@@ -25,8 +25,18 @@ class AppError extends Error{
 }
 
 // Helping functions - 
-const getNormalizedNumber = (enroll : string)=>{
+function getNormalizedNumber(enroll : string){
     return enroll.replace(/^0+/, '') || '0';
+}
+
+function startAndEndTime() : Date[]{
+    const startTime = new Date();
+    startTime.setHours(0, 0, 0, 0);
+
+    const endTime = new Date();
+    endTime.setHours(23, 59, 59, 999);
+
+    return [startTime, endTime];
 }
 
 
@@ -234,17 +244,11 @@ app.post('/entry', async (req : Request, res : Response, next : NextFunction)=>{
         if(!student)
             return next(new AppError(`No student with this enrollment number`, 404));
 
-        const startTime = new Date();
-        startTime.setHours(0, 0, 0, 0);
-
-        const endTime = new Date();
-        endTime.setHours(23, 59, 59, 999);
-
         // Latest log for this student - 
         const log = await Log.findOne({student_id : student._id, 
             createdAt : {
-                $gte : startTime,
-                $lte : endTime
+                $gte : startAndEndTime()[0],
+                $lte : startAndEndTime()[1]
             }
         }).sort({createdAt : -1});
 
@@ -268,25 +272,43 @@ app.post('/entry', async (req : Request, res : Response, next : NextFunction)=>{
 
 app.get('/analytics', authenticate, async (req : Request, res : Response, next : NextFunction)=>{
     try{
-        const startTime = new Date();
-        startTime.setHours(0, 0, 0, 0);
-        const endTime = new Date();
-        endTime.setHours(23, 59, 59, 999);
+        let stuInside: any[] = [
+            { $match: { createdAt: { $gte: startAndEndTime()[0], $lte: startAndEndTime()[1] } } },
+            { $sort: { createdAt: -1 } },
+            { $group: { _id: '$student_id', latestStatus: { $first: '$status' } } },
+            { $match: { latestStatus: true } },
 
-        const insideStudents = await Log.aggregate([
-            {$match : {createdAt : {$gte : startTime, $lte : endTime}}},
-            {$sort : {createdAt : -1}},
-            {$group : {_id : "$student_id", latestStatus : {$first : "$status"}}},
-            {$match : {latestStatus : true}},
-            {$count : "studentsInside"}
-        ]);
+            {
+                // Lookup to join Student details
+            $lookup: {
+                from: 'students', // Collection name
+                localField: '_id',
+                foreignField: '_id', // Student (schema) has primary key as _id
+                as: 'student'
+            }
+            },
 
-        const count = insideStudents.length > 0 ? insideStudents[0].studentsInside : 0;
+            { $unwind: '$student' }, // Flatten the array (assuming one-to-one)
+            
+            {
+                // Project to include name and other fields
+            $project: {
+                // studentId: '$_id',
+                name: '$student.name',
+                dept: '$student.department',
+                semester: '$student.semester',
+                batch : '$student.batch'
+                // latestStatus: 1, // Optional: keep if needed
+            }
+        }
+      ];
+
+      const studentsInside = await Log.aggregate(stuInside); 
 
         res.status(200).json({ 
-            message: "Students currently inside", 
+            Msg: "Students currently inside", 
             date: new Date().toISOString().split('T')[0], 
-            count
+            studentsInside
         });
     }
     catch(err){
@@ -294,12 +316,6 @@ app.get('/analytics', authenticate, async (req : Request, res : Response, next :
     }
 });
 
-app.get('/', authenticate, (req: Request, res: Response) => {
-  res.json({
-    message: 'Hello from Express + TypeScript!',
-    timestamp: new Date().toISOString()
-  });
-});
 
 
 // Error handling middleware
