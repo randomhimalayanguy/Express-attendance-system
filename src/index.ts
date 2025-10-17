@@ -2,6 +2,7 @@ import express, { NextFunction, Request, Response } from 'express';
 import mongoose, {Schema} from 'mongoose';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import { appendFile } from 'fs';
 
 
 // Const
@@ -132,6 +133,23 @@ const authenticate = (req : AuthRequest, res : Response, next : NextFunction)=>{
     }
 };
 
+const validate = (req : Request, res : Response, next : NextFunction)=>{
+    try{
+        const skip = parseInt(String(req.query.skip)) || 0;
+        const limit = parseInt(String(req.query.limit)) || 20;
+
+        if(skip < 0 || limit < 0)
+            return next(new AppError(`Skip and limit must not be negative`, 400));
+        
+        req.query.skip = String(skip);
+        req.query.limit = String(limit);
+        next();
+    }
+    catch(err){
+        next(new AppError(`Can't validate : ${err}`, 500));
+    }
+}
+
 
 // Routes
 app.post('/register', async (req : Request, res : Response, next : NextFunction)=>{
@@ -193,6 +211,23 @@ app.post('/login', async (req : Request, res : Response, next : NextFunction)=>{
 });
 
 
+// Student -> Get (show students and allow filtering), Post (add student), Delete (delete student)
+
+app.get('/student', authenticate, validate, async (req : Request, res : Response, next : NextFunction)=>{
+    try{
+        const skip = parseInt(String(req.query.skip));
+        const limit = parseInt(String(req.query.limit));
+
+        const students = await Student.find().limit(limit).skip(skip);
+
+        res.status(201).json(students);
+    }
+    catch(err){
+        next(new AppError(`Can't retrieve student list`, 500));
+    }
+});
+
+
 app.post('/student', authenticate, async (req : Request, res : Response, next : NextFunction)=>{
     try{
         // Required - name, enrollment_number, department, mor_shift(bool), batch, semester (number)
@@ -235,6 +270,26 @@ app.post('/student', authenticate, async (req : Request, res : Response, next : 
 });
 
 
+app.delete('/student', authenticate, async (req : Request, res : Response, next : NextFunction)=>{
+    try{
+        const {enrollment_number} = req.body;
+        if(!enrollment_number)
+            return next(new AppError(`You must provide enrollment number`, 400));
+
+        const normalizedEnrollmentNumber = getNormalizedNumber(enrollment_number);
+        const student = await Student.findOneAndDelete({enrollment_number : normalizedEnrollmentNumber});
+
+        if(!student)
+            return next(new AppError(`No student with this enrollment number`, 404));
+        
+        res.status(204).json({Msg : "Student deleted"});
+    }
+    catch(err){
+        next(new AppError(`Can't delete the user : ${err}`, 500));
+    }
+});
+
+
 app.post('/entry', async (req : Request, res : Response, next : NextFunction)=>{
     try{
         const {enrollment_number} = req.body;
@@ -272,12 +327,12 @@ app.post('/entry', async (req : Request, res : Response, next : NextFunction)=>{
 
 app.get('/analytics', authenticate, async (req : Request, res : Response, next : NextFunction)=>{
     try{
-        let stuInside: any[] = [
+        let pipeline: any[] = [
             { $match: { createdAt: { $gte: startAndEndTime()[0], $lte: startAndEndTime()[1] } } },
             { $sort: { createdAt: -1 } },
             { $group: { _id: '$student_id', latestStatus: { $first: '$status' } } },
             { $match: { latestStatus: true } },
-
+            
             {
                 // Lookup to join Student details
             $lookup: {
@@ -292,23 +347,25 @@ app.get('/analytics', authenticate, async (req : Request, res : Response, next :
             
             {
                 // Project to include name and other fields
-            $project: {
+                $project: {
                 // studentId: '$_id',
-                name: '$student.name',
-                dept: '$student.department',
-                semester: '$student.semester',
-                batch : '$student.batch'
+                    name: '$student.name',
+                    dept: '$student.department',
+                    semester: '$student.semester',
+                    batch : '$student.batch'
                 // latestStatus: 1, // Optional: keep if needed
+                },
+               
             }
-        }
       ];
 
-      const studentsInside = await Log.aggregate(stuInside); 
+      const studentsInside = await Log.aggregate(pipeline); 
 
         res.status(200).json({ 
             Msg: "Students currently inside", 
-            date: new Date().toISOString().split('T')[0], 
-            studentsInside
+            date: new Date().toISOString().split('T')[0],
+            totalInside : studentsInside.length,
+            studentsInside,
         });
     }
     catch(err){
