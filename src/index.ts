@@ -2,7 +2,9 @@ import express, { NextFunction, Request, Response } from 'express';
 import mongoose, {Schema} from 'mongoose';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { appendFile } from 'fs';
+import cors from 'cors';
+import multer from 'multer';
+import csv from 'csv-parse/sync';
 
 
 // Const
@@ -39,6 +41,20 @@ function startAndEndTime() : Date[]{
 
     return [startTime, endTime];
 }
+
+
+// Multer for CSV upload
+const upload = multer({ 
+    storage: multer.memoryStorage(),
+    fileFilter: (req, file, cb) => {
+        if (file.mimetype === 'text/csv' || file.originalname.endsWith('.csv')) {
+            cb(null, true);
+        } else {
+            cb(new AppError('Only CSV files are allowed', 400));
+        }
+    }
+});
+
 
 
 // Interfaces
@@ -114,6 +130,7 @@ const Log = mongoose.model('Log', logSchema);
 
 // Middleware
 app.use(express.json());
+app.use(cors());
 
 const authenticate = (req : AuthRequest, res : Response, next : NextFunction)=>{
     try{
@@ -215,19 +232,62 @@ app.post('/login', async (req : Request, res : Response, next : NextFunction)=>{
 
 app.get('/student', authenticate, validate, async (req : Request, res : Response, next : NextFunction)=>{
     try{
-        // Add filters like Shift, Department, Batch, etc. using query
-
         const skip = parseInt(String(req.query.skip));
         const limit = parseInt(String(req.query.limit));
 
-        const students = await Student.find().limit(limit).skip(skip);
+        const filter : any = {};
 
-        res.status(201).json(students);
+        if(req.query.department)
+            filter.department = req.query.department;
+
+        if(req.query.batch)
+            filter.batch = req.query.batch;
+
+        if(req.query.semester)
+            filter.semester = parseInt((String(req.query.semester)));
+
+        if(req.query.section)
+            filter.section = req.query.section;
+
+        if(req.query.shift)
+            filter.mor_shift = req.query.shift === 'morning';
+
+        if(req.query.search)
+            filter.name = req.query.search;
+
+        const students = await Student.find(filter).limit(limit).skip(skip).sort({enrollment_number : 1});
+
+
+        res.status(201).json({
+            Msg : 'Students Retreved',
+            count : students.length,
+            students});
     }
     catch(err){
         next(new AppError(`Can't retrieve student list`, 500));
     }
 });
+
+
+app.get('/student/:enroll', authenticate, async (req : Request, res : Response, next : NextFunction)=>{
+    try{
+        const enrollment_number = req.params.enroll;
+        if(!enrollment_number)
+            return next(new AppError(`You must provide enrollment number`, 400));
+
+        const normalizedEnrollmentNumber = getNormalizedNumber(enrollment_number);
+        const student = await Student.findOne({enrollment_number : normalizedEnrollmentNumber});
+
+        if(!student)
+            return next(new AppError(`No student with this enrollment number`, 404));
+
+        res.status(200).json({Msg : "Student Retrieved", student});
+    }
+    catch(err){
+        next(new AppError(`Can't retrieve student : ${err}`, 500));
+    }
+});
+
 
 
 app.post('/student', authenticate, async (req : Request, res : Response, next : NextFunction)=>{
@@ -250,24 +310,119 @@ app.post('/student', authenticate, async (req : Request, res : Response, next : 
 
         const student = await Student.findOne({enrollment_number : normalizedEnrollmentNumber});
         if(student)
-            return next(new AppError(`Student already exist`, 400));
+            return next(new AppError(`Student already exist`, 409));
 
         const newStudent = new Student({
-            name : name,
+            name : name.trim(),
             enrollment_number : normalizedEnrollmentNumber,
-            address : address,
-            batch : batch,
-            department : department,
+            batch : batch.trim(),
+            section : section?.trim(),
+            department : department.trim(),
             semester : semester,
             mor_shift : mor_shift,
-            phone_no : phone_no,
-            section : section
+            phone_no : phone_no?.trim(),
+            address : address?.trim()
         });
         await newStudent.save();
         res.status(201).json({Msg : "Student added", newStudent});
     }
     catch(err){
         next(new AppError(`Can't add the student : ${err}`));
+    }
+});
+
+
+app.post('/student/bulk', authenticate, upload.single('file'), async (req : Request, res : Response, next : NextFunction)=>{
+    try{
+        if(!req.file)
+            return next(new AppError(`No CSV file provided`, 400));
+
+        const csvContent = req.file.buffer.toString('utf-8');
+        
+        const records = csv.parse(csvContent, {
+            columns: true,
+            skip_empty_lines: true,
+            trim: true
+        });
+
+        if(records.length === 0)
+            return next(new AppError(`CSV file is empty`, 400));
+
+        const results = {
+            success: 0,
+            failed: 0,
+            errors: [] as {row: number, error: string}[]
+        };
+
+        for(let i = 0; i < records.length; i++){
+            try{
+                const record : any = records[i];
+                
+                // Validate required fields
+                if(!record.name || !record.enrollment_number || !record.department || !record.batch){
+                    results.failed++;
+                    results.errors.push({
+                        row: i + 2,
+                        error: 'Missing required fields: name, enrollment_number, department, batch'
+                    });
+                    continue;
+                }
+
+                const normalizedEnrollmentNumber = getNormalizedNumber(record.enrollment_number);
+                
+                // Check if student already exists
+                const existingStudent = await Student.findOne({enrollment_number : normalizedEnrollmentNumber});
+                if(existingStudent){
+                    results.failed++;
+                    results.errors.push({
+                        row: i + 2,
+                        error: `Student with enrollment ${record.enrollment_number} already exists`
+                    });
+                    continue;
+                }
+
+                const semester = parseInt(record.semester) || 1;
+                if(semester < 1 || semester > 8){
+                    results.failed++;
+                    results.errors.push({
+                        row: i + 2,
+                        error: 'Semester must be between 1 and 8'
+                    });
+                    continue;
+                }
+
+                const newStudent = new Student({
+                    name : record.name.trim(),
+                    enrollment_number : normalizedEnrollmentNumber,
+                    department : record.department.trim(),
+                    batch : record.batch.trim(),
+                    semester : semester,
+                    mor_shift : record.mor_shift?.toLowerCase() === 'true' || record.mor_shift === '1' || true,
+                    section : record.section?.trim() || '',
+                    phone_no : record.phone_no?.trim() || '',
+                    address : record.address?.trim() || ''
+                });
+
+                await newStudent.save();
+                results.success++;
+            }
+            catch(err){
+                results.failed++;
+                results.errors.push({
+                    row: i + 2,
+                    error: `${err}`
+                });
+            }
+        }
+
+        res.status(201).json({
+            Msg: "Bulk upload completed",
+            ...results,
+            total: records.length
+        });
+    }
+    catch(err){
+        next(new AppError(`Can't process bulk upload : ${err}`, 500));
     }
 });
 
@@ -284,7 +439,7 @@ app.delete('/student/:enroll', authenticate, async (req : Request, res : Respons
         if(!student)
             return next(new AppError(`No student with this enrollment number`, 404));
         
-        res.status(204).json({Msg : "Student deleted"});
+        res.status(200).json({Msg : "Student deleted", student});
     }
     catch(err){
         next(new AppError(`Can't delete the user : ${err}`, 500));
@@ -304,21 +459,24 @@ app.patch('/student/:enroll', authenticate, async (req : Request, res : Response
         if(!student)
             return next(new AppError(`Student does not exist`, 404));
 
-        const {name =  student.name,
-            batch = student.batch,
-            department = student.department,
-            semester = student.semester,
-            mor_shift = student.mor_shift,
-            phone_no = student.phone_no,
-            section =  student.section,
-            address = student.address
-        } = req.body; 
+        const updatedData = {
+            name: req.body.name ? req.body.name.trim() : student.name,
+            batch: req.body.batch ? req.body.batch.trim() : student.batch,
+            department: req.body.department ? req.body.department.trim() : student.department,
+            semester: req.body.semester || student.semester,
+            mor_shift: req.body.mor_shift !== undefined ? req.body.mor_shift : student.mor_shift,
+            phone_no: req.body.phone_no ? req.body.phone_no.trim() : student.phone_no,
+            section: req.body.section ? req.body.section.trim() : student.section,
+            address: req.body.address ? req.body.address.trim() : student.address
+        };
 
-        const updatedStudent = await Student.findOneAndUpdate({
-            name, batch, department, semester, mor_shift, phone_no, section, address
-        });
+        const updatedStudent = await Student.findOneAndUpdate(
+            {enrollment_number : normalizedEnrollmentNumber},
+            updatedData,
+            {new : true}
+        );
 
-        res.status(201).json({Msg : "Student info updated", updatedStudent});
+        res.status(200).json({Msg : "Student info updated", updatedStudent});
     }
     catch(err){
         next(new AppError(`Can't update the student : ${err}`, 500));
@@ -395,7 +553,7 @@ app.get('/analytics', authenticate, async (req : Request, res : Response, next :
                
             }
       ];
-
+ 
       const studentsInside = await Log.aggregate(pipeline); 
 
         res.status(200).json({ 
