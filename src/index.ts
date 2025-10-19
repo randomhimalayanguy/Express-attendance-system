@@ -538,17 +538,15 @@ app.get('/analytics', authenticate, async (req : Request, res : Response, next :
             }
             },
 
-            { $unwind: '$student' }, // Flatten the array (assuming one-to-one)
+            { $unwind: '$student' }, // Flatten the array
             
             {
                 // Project to include name and other fields
                 $project: {
-                // studentId: '$_id',
                     name: '$student.name',
                     dept: '$student.department',
                     semester: '$student.semester',
                     batch : '$student.batch'
-                // latestStatus: 1, // Optional: keep if needed
                 },
                
             }
