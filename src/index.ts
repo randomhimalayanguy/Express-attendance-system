@@ -18,6 +18,8 @@ mongoose.connect('mongodb://localhost:27017/attendance')
 
 // App
 const app = express();
+app.use(express.static('public'));
+
 
 class AppError extends Error{
     statusCode : number;

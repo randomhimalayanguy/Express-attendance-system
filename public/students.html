@@ -1,0 +1,143 @@
+<!-- students.html (Student Management Page) -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance System - Manage Students</title>
+    <!-- Load Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="css/shared.css">
+    <link rel="stylesheet" href="css/students.css">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="nav">
+        <div class="nav-container">
+            <div class="nav-flex nav-justify-between nav-height">
+                <div class="nav-flex nav-items-center">
+                    <a href="index.html" class="nav-title">
+                        <i class="fas fa-clipboard-user nav-mr-2"></i>Attendance
+                    </a>
+                </div>
+                <div class="nav-flex nav-items-center nav-space-x-4">
+                    <!-- Unauthenticated links -->
+                    <a href="login.html" class="nav-link hidden" id="nav-login">
+                        <i class="fas fa-sign-in-alt nav-mr-1"></i>Admin Login
+                    </a>
+                    <!-- Authenticated links -->
+                    <a href="analytics.html" class="nav-link" id="nav-analytics">
+                        <i class="fas fa-chart-pie nav-mr-1"></i>Analytics
+                    </a>
+                    <a href="students.html" class="nav-link active" id="nav-students">
+                        <i class="fas fa-users-cog nav-mr-1"></i>Manage Students
+                    </a>
+                    <a href="#" class="nav-link" id="nav-logout">
+                        <i class="fas fa-sign-out-alt nav-mr-1"></i>Logout
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Page Content: Student Management Page -->
+    <main class="main">
+        <div class="students-container">
+            <div class="management-grid">
+                
+                <!-- Left Column: Add & Bulk Add -->
+                <div class="add-column">
+                    
+                    <!-- Add Single Student -->
+                    <div class="card">
+                        <h3 class="section-title">Add New Student</h3>
+                        <form id="add-student-form" class="form space-y-4">
+                            <input type="text" id="add-name" placeholder="Name" required class="input-field">
+                            <input type="text" id="add-enroll" placeholder="Enrollment Number" required class="input-field">
+                            <input type="text" id="add-dept" placeholder="Department" required class="input-field">
+                            <input type="text" id="add-batch" placeholder="Batch (e.g., 2022-26)" required class="input-field">
+                            <input type="number" id="add-sem" placeholder="Semester (1-8)" min="1" max="8" required class="input-field">
+                            <select id="add-shift" class="input-field select-gray">
+                                <option value="true">Morning Shift</option>
+                                <option value="false">Evening Shift</option>
+                            </select>
+                            <input type="text" id="add-section" placeholder="Section (Optional)" class="input-field">
+                            <input type="text" id="add-phone" placeholder="Phone (Optional)" class="input-field">
+                            <input type="text" id="add-address" placeholder="Address (Optional)" class="input-field">
+                            <button type="submit" class="submit-btn">Add Student</button>
+                        </form>
+                        <div id="add-student-msg" class="msg-area"></div>
+                    </div>
+
+                    <!-- Bulk Add Students -->
+                    <div class="card">
+                        <h3 class="section-title">Bulk Add via CSV</h3>
+                        <form id="bulk-add-form" class="form space-y-4">
+                            <label for="csv-file" class="label">Upload .csv file</label>
+                            <input type="file" id="csv-file" accept=".csv" required class="file-input">
+                            <button type="submit" class="submit-btn btn-green">Upload Bulk</button>
+                        </form>
+                        <div id="bulk-add-msg" class="msg-area"></div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Find Students -->
+                <div class="find-column card">
+                    <h3 class="section-title">Find Students</h3>
+                    
+                    <!-- Search by Enrollment -->
+                    <div class="search-section mb-6">
+                        <label for="search-enroll" class="label">Search by Enrollment Number</label>
+                        <div class="input-wrapper">
+                            <input type="text" id="search-enroll" class="input-field" placeholder="Find one student...">
+                            <button id="search-enroll-btn" class="submit-btn" title="Search">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                        <div id="search-enroll-msg" class="msg-area"></div>
+                    </div>
+
+                    <!-- Filter Students -->
+                    <form id="filter-form" class="filter-grid mb-6">
+                        <input type="text" id="filter-search" placeholder="Name" class="input-field">
+                        <input type="text" id="filter-dept" placeholder="Department" class="input-field">
+                        <input type="text" id="filter-batch" placeholder="Batch" class="input-field">
+                        <input type="number" id="filter-sem" placeholder="Semester" class="input-field">
+                        <input type="text" id="filter-section" placeholder="Section" class="input-field">
+                        <select id="filter-shift" class="input-field select-gray">
+                            <option value="">Any Shift</option>
+                            <option value="morning">Morning</option>
+                            <option value="evening">Evening</option>
+                        </select>
+                        <button type="submit" class="submit-btn filter-btn-span">Filter Students</button>
+                    </form>
+
+                    <!-- Student List -->
+                    <p id="student-list-count" class="count-text">Showing 0 students.</p>
+                    <div class="table-wrapper">
+                        <table class="students-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Enroll. No.</th>
+                                    <th>Department</th>
+                                    <th>Batch</th>
+                                    <th>Sem</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="student-list-body">
+                                <tr><td colspan="6" class="empty-cell">Filter students to see results.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- JavaScript -->
+    <script src="js/shared.js"></script>
+    <script src="js/students.js"></script>
+</body>
+</html>

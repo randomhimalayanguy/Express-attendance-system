@@ -1,0 +1,130 @@
+/* analytics-styles.css (Page-Specific Styles for Analytics Page) */
+.analytics-container {
+    max-width: 80rem;
+    margin: 0 auto;
+    padding: 1rem;
+    margin-top: 2.5rem;
+}
+
+@media (min-width: 640px) {
+    .analytics-container {
+        padding: 1.5rem;
+    }
+}
+
+@media (min-width: 1024px) {
+    .analytics-container {
+        padding: 2rem;
+    }
+}
+
+.analytics-card {
+    background-color: white;
+    padding: 2rem;
+    border-radius: 1rem;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.analytics-title {
+    font-size: 1.875rem;
+    font-weight: bold;
+    color: #4f46e5;
+    margin-bottom: 0.5rem;
+    margin-top: 0;
+}
+
+.analytics-date {
+    font-size: 1.125rem;
+    color: #6b7280;
+    margin-bottom: 1.5rem;
+    margin-top: 0;
+}
+
+.total-inside {
+    background-color: #eef2ff;
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.total-text {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #3730a3;
+    margin: 0;
+}
+
+.count {
+    font-weight: bold;
+    font-size: 2.25rem;
+    margin-left: 0.5rem;
+}
+
+.students-header {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 1rem;
+    margin-top: 0;
+}
+
+.table-wrapper {
+    overflow-x: auto;
+    border-radius: 0.5rem;
+    border: 1px solid #e5e7eb;
+}
+
+.analytics-table {
+    min-width: 100%;
+}
+
+.analytics-table thead th {
+    padding: 0.75rem 1.5rem;
+    text-align: left;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    background-color: #f9fafb;
+}
+
+.analytics-table tbody td {
+    padding: 1rem 1.5rem;
+    white-space: nowrap;
+    font-size: 0.875rem;
+    color: #374151;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.analytics-table tbody tr:hover {
+    background-color: #f9fafb;
+}
+
+.analytics-table tbody .name-cell {
+    font-weight: 500;
+    color: #111827;
+}
+
+.analytics-table tbody .data-cell {
+    color: #6b7280;
+}
+
+.loading-cell,
+.empty-cell,
+.error-cell {
+    padding: 2.5rem 1.5rem;
+    text-align: center;
+}
+
+.loading-cell {
+    color: #6b7280;
+}
+
+.empty-cell {
+    color: #6b7280;
+}
+
+.error-cell {
+    color: #ef4444;
+}

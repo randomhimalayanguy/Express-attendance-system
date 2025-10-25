@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-gray-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance System</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <style>
+        /* Custom styles */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Hide all pages by default */
+        .page {
+            display: none;
+        }
+        /* Show the active page */
+        .page.active {
+            display: block;
+        }
+        /* Simple spinner */
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #4f46e5;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="h-full flex flex-col">
+    <!-- Navbar -->
+    <nav class="bg-indigo-600 text-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <a href="#" class="font-bold text-2xl nav-link" data-page="security-page">
+                        <i class="fas fa-clipboard-user mr-2"></i>Attendance
+                    </a>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <!-- Unauthenticated links -->
+                    <a href="#" class="nav-link px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-700" id="nav-login" data-page="login-page">
+                        <i class="fas fa-sign-in-alt mr-1"></i>Admin Login
+                    </a>
+                    <!-- Authenticated links (hidden by default) -->
+                    <a href="#" class="nav-link hidden px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-700" id="nav-analytics" data-page="analytics-page">
+                        <i class="fas fa-chart-pie mr-1"></i>Analytics
+                    </a>
+                    <a href="#" class="nav-link hidden px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-700" id="nav-students" data-page="student-mgmt-page">
+                        <i class="fas fa-users-cog mr-1"></i>Manage Students
+                    </a>
+                    <a href="#" class="hidden px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-700" id="nav-logout">
+                        <i class="fas fa-sign-out-alt mr-1"></i>Logout
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Page Container -->
+    <main class="flex-grow">
+        
+        <!-- Page 1: Security Page (Default) -->
+        <div id="security-page" class="page active max-w-lg mx-auto p-4 sm:p-6 lg:p-8 mt-10">
+            <div class="bg-white p-8 rounded-2xl shadow-xl">
+                <h2 class="text-3xl font-bold text-center text-indigo-600" id="clock">Loading...</h2>
+                <p class="text-center text-gray-500 text-lg" id="date">Loading...</p>
+                
+                <div class="mt-8">
+                    <label for="enrollment-input" class="block text-sm font-medium text-gray-700">Enrollment Number</label>
+                    <div class="mt-1 flex rounded-lg shadow-sm">
+                        <input type="text" id="enrollment-input" class="flex-1 block w-full rounded-l-lg border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm px-4 py-3" placeholder="Enter enrollment number...">
+                        <button id="submit-entry" class="inline-flex items-center px-6 py-3 border border-transparent rounded-r-lg bg-indigo-600 text-white font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                            <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Message Area -->
+                <div id="entry-message" class="mt-6 text-center h-16"></div>
+            </div>
+        </div>
+
+        <!-- Page 2: Login Page -->
+        <div id="login-page" class="page max-w-md mx-auto p-4 sm:p-6 lg:p-8 mt-10">
+            <div class="bg-white p-8 rounded-2xl shadow-xl">
+                <h2 class="text-3xl font-bold text-center text-indigo-600 mb-8">Admin Login</h2>
+                <form id="login-form" class="space-y-6">
+                    <div>
+                        <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
+                        <input type="text" id="username" required class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="admin">
+                    </div>
+                    <div>
+                        <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+                        <input type="password" id="password" required class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="••••••••">
+                    </div>
+                    <button type="submit" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        Login
+                    </button>
+                </form>
+                <div id="login-message" class="mt-6 text-center text-red-600 h-8"></div>
+            </div>
+        </div>
+
+        <!-- Page 3: Analytics Page -->
+        <div id="analytics-page" class="page max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 mt-10">
+            <div class="bg-white p-8 rounded-2xl shadow-xl">
+                <h2 class="text-3xl font-bold text-indigo-600 mb-2">Today's Analytics</h2>
+                <p class="text-lg text-gray-600 mb-6" id="analytics-date">Loading date...</p>
+                
+                <div class="bg-indigo-50 p-6 rounded-lg mb-6">
+                    <p class="text-2xl font-semibold text-indigo-800">Total Students Inside: 
+                        <span id="total-inside-count" class="font-bold text-4xl ml-2">...</span>
+                    </p>
+                </div>
+                
+                <h3 class="text-2xl font-semibold text-gray-800 mb-4">Students Currently Inside</h3>
+                <div class="overflow-x-auto rounded-lg border">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Batch</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Semester</th>
+                            </tr>
+                        </thead>
+                        <tbody id="analytics-table-body" class="bg-white divide-y divide-gray-200">
+                            <!-- JS will populate this -->
+                            <tr>
+                                <td colspan="4" class="px-6 py-10 text-center text-gray-500">
+                                    <div class="spinner mx-auto"></div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <!-- Note: Advanced filtering is not implemented here as per user's "simple" request, but can be added. -->
+            </div>
+        </div>
+
+        <!-- Page 4: Student Management Page -->
+        <div id="student-mgmt-page" class="page max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 mt-10">
+            
+            <!-- Student Management Sections -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                
+                <!-- Left Column: Add & Bulk Add -->
+                <div class="lg:col-span-1 space-y-8">
+                    
+                    <!-- Add Single Student -->
+                    <div class="bg-white p-6 rounded-2xl shadow-xl">
+                        <h3 class="text-2xl font-bold text-indigo-600 mb-6">Add New Student</h3>
+                        <form id="add-student-form" class="space-y-4">
+                            <input type="text" id="add-name" placeholder="Name" required class="w-full px-4 py-2 border rounded-lg">
+                            <input type="text" id="add-enroll" placeholder="Enrollment Number" required class="w-full px-4 py-2 border rounded-lg">
+                            <input type="text" id="add-dept" placeholder="Department" required class="w-full px-4 py-2 border rounded-lg">
+                            <input type="text" id="add-batch" placeholder="Batch (e.g., 2022-26)" required class="w-full px-4 py-2 border rounded-lg">
+                            <input type="number" id="add-sem" placeholder="Semester (1-8)" min="1" max="8" required class="w-full px-4 py-2 border rounded-lg">
+                            <select id="add-shift" class="w-full px-4 py-2 border rounded-lg text-gray-500">
+                                <option value="true">Morning Shift</option>
+                                <option value="false">Evening Shift</option>
+                            </select>
+                            <input type="text" id="add-section" placeholder="Section (Optional)" class="w-full px-4 py-2 border rounded-lg">
+                            <input type="text" id="add-phone" placeholder="Phone (Optional)" class="w-full px-4 py-2 border rounded-lg">
+                            <input type="text" id="add-address" placeholder="Address (Optional)" class="w-full px-4 py-2 border rounded-lg">
+                            <button type="submit" class="w-full py-3 px-4 rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 font-medium">
+                                Add Student
+                            </button>
+                        </form>
+                        <div id="add-student-msg" class="mt-4 text-center h-6"></div>
+                    </div>
+
+                    <!-- Bulk Add Students -->
+                    <div class="bg-white p-6 rounded-2xl shadow-xl">
+                        <h3 class="text-2xl font-bold text-indigo-600 mb-6">Bulk Add via CSV</h3>
+                        <form id="bulk-add-form" class="space-y-4">
+                            <label for="csv-file" class="block text-sm font-medium text-gray-700">Upload .csv file</label>
+                            <input type="file" id="csv-file" accept=".csv" required class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                            <button type="submit" class="w-full py-3 px-4 rounded-lg text-white bg-green-600 hover:bg-green-700 font-medium">
+                                Upload Bulk
+                            </button>
+                        </form>
+                        <div id="bulk-add-msg" class="mt-4 text-center h-12"></div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Find Students -->
+                <div class="lg:col-span-2 bg-white p-6 rounded-2xl shadow-xl">
+                    <h3 class="text-2xl font-bold text-indigo-600 mb-6">Find Students</h3>
+                    
+                    <!-- Search by Enrollment -->
+                    <div class="mb-6">
+                        <label for="search-enroll" class="block text-sm font-medium text-gray-700">Search by Enrollment Number</label>
+                        <div class="mt-1 flex rounded-lg shadow-sm">
+                            <input type="text" id="search-enroll" class="flex-1 block w-full rounded-l-lg border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm px-4 py-3" placeholder="Find one student...">
+                            <button id="search-enroll-btn" class="inline-flex items-center px-6 py-3 border border-transparent rounded-r-lg bg-indigo-600 text-white font-medium hover:bg-indigo-700">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                        <div id="search-enroll-msg" class="mt-2 text-center h-6"></div>
+                    </div>
+
+                    <!-- Filter Students -->
+                    <form id="filter-form" class="mb-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                        <input type="text" id="filter-search" placeholder="Name" class="w-full px-4 py-2 border rounded-lg">
+                        <input type="text" id="filter-dept" placeholder="Department" class="w-full px-4 py-2 border rounded-lg">
+                        <input type="text" id="filter-batch" placeholder="Batch" class="w-full px-4 py-2 border rounded-lg">
+                        <input type="number" id="filter-sem" placeholder="Semester" class="w-full px-4 py-2 border rounded-lg">
+                        <input type="text" id="filter-section" placeholder="Section" class="w-full px-4 py-2 border rounded-lg">
+                        <select id="filter-shift" class="w-full px-4 py-2 border rounded-lg text-gray-500">
+                            <option value="">Any Shift</option>
+                            <option value="morning">Morning</option>
+                            <option value="evening">Evening</option>
+                        </select>
+                        <button type="submit" class="w-full py-2 px-4 rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 font-medium sm:col-span-2 md:col-span-3">
+                            Filter Students
+                        </button>
+                    </form>
+
+                    <!-- Student List -->
+                    <p class="text-sm text-gray-600 mb-2" id="student-list-count">Showing 0 students.</p>
+                    <div class="overflow-x-auto rounded-lg border max-h-[600px] overflow-y-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50 sticky top-0">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Enroll. No.</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Department</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Batch</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Sem</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="student-list-body" class="bg-white divide-y divide-gray-200">
+                                <!-- JS will populate this -->
+                                <tr><td colspan="6" class="px-6 py-10 text-center text-gray-500">Filter students to see results.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Global Message/Modal Area -->
+    <!-- This can be used for "Are you sure?" confirmations -->
+
+    <!-- JavaScript -->
+    <script type="module">
+        // --- CONFIG ---
+        const API_URL = 'http://localhost:5000';
+
+        // --- STATE ---
+        let G_TOKEN = localStorage.getItem('adminToken');
+        let G_USER = JSON.parse(localStorage.getItem('adminUser'));
+
+        // --- DOM ELEMENTS ---
+        const pages = document.querySelectorAll('.page');
+        const navLinks = document.querySelectorAll('.nav-link');
+        const navLogin = document.getElementById('nav-login');
+        const navAnalytics = document.getElementById('nav-analytics');
+        const navStudents = document.getElementById('nav-students');
+        const navLogout = document.getElementById('nav-logout');
+
+        // Security Page
+        const clockEl = document.getElementById('clock');
+        const dateEl = document.getElementById('date');
+        const enrollInput = document.getElementById('enrollment-input');
+        const entryBtn = document.getElementById('submit-entry');
+        const entryMsg = document.getElementById('entry-message');
+
+        // Login Page
+        const loginForm = document.getElementById('login-form');
+        const usernameInput = document.getElementById('username');
+        const passwordInput = document.getElementById('password');
+        const loginMsg = document.getElementById('login-message');
+
+        // Analytics Page
+        const analyticsDate = document.getElementById('analytics-date');
+        const totalInsideCount = document.getElementById('total-inside-count');
+        const analyticsTBody = document.getElementById('analytics-table-body');
+
+        // Student Mgmt Page
+        const addStudentForm = document.getElementById('add-student-form');
+        const addStudentMsg = document.getElementById('add-student-msg');
+        const bulkAddForm = document.getElementById('bulk-add-form');
+        const bulkAddMsg = document.getElementById('bulk-add-msg');
+        const searchEnrollInput = document.getElementById('search-enroll');
+        const searchEnrollBtn = document.getElementById('search-enroll-btn');
+        const searchEnrollMsg = document.getElementById('search-enroll-msg');
+        const filterForm = document.getElementById('filter-form');
+        const studentListBody = document.getElementById('student-list-body');
+        const studentListCount = document.getElementById('student-list-count');
+
+
+        // --- API HELPERS ---
+
+        /**
+         * Generic fetch wrapper
+         * @param {string} endpoint - The API endpoint (e.g., '/login')
+         * @param {object} options - Fetch options (method, body, etc.)
+         * @param {boolean} auth - Whether to send Authorization header
+         */
+        async function api(endpoint, options = {}, auth = false) {
+            const headers = {
+                'Content-Type': 'application/json',
+                ...options.headers,
+            };
+
+            if (auth && G_TOKEN) {
+                headers['Authorization'] = `Bearer ${G_TOKEN}`;
+            }
+
+            try {
+                const res = await fetch(`${API_URL}${endpoint}`, { ...options, headers });
+                const data = await res.json();
+
+                if (!res.ok) {
+                    // If auth error, log out
+                    if (res.status === 409 && data.error.includes("Cannot Authenticate")) {
+                        handleLogout();
+                    }
+                    throw new Error(data.error || 'API Error');
+                }
+                return data;
+
+            } catch (err) {
+                console.error(`API Error at ${endpoint}:`, err);
+                throw err;
+            }
+        }
+
+        // --- NAVIGATION ---
+        function showPage(pageId) {
+            pages.forEach(page => {
+                page.classList.toggle('active', page.id === pageId);
+            });
+            
+            // Handle page-specific loading
+            if (pageId === 'analytics-page' && G_TOKEN) {
+                loadAnalytics();
+            }
+            if (pageId === 'student-mgmt-page' && G_TOKEN) {
+                // Initially load no students
+                studentListBody.innerHTML = '<tr><td colspan="6" class="px-6 py-10 text-center text-gray-500">Filter students to see results.</td></tr>';
+                studentListCount.textContent = 'Showing 0 students.';
+            }
+        }
+
+        function updateNav() {
+            if (G_TOKEN) {
+                navLogin.classList.add('hidden');
+                navAnalytics.classList.remove('hidden');
+                navStudents.classList.remove('hidden');
+                navLogout.classList.remove('hidden');
+            } else {
+                navLogin.classList.remove('hidden');
+                navAnalytics.classList.add('hidden');
+                navStudents.classList.add('hidden');
+                navLogout.classList.add('hidden');
+            }
+        }
+
+        navLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const pageId = e.currentTarget.dataset.page;
+                if (pageId) {
+                    showPage(pageId);
+                }
+            });
+        });
+
+        // --- MESSAGE/UI HELPERS ---
+        function showMessage(el, text, isError = false) {
+            el.textContent = text;
+            el.className = isError 
+                ? 'text-red-600 animate-pulse' 
+                : 'text-green-600';
+            setTimeout(() => el.textContent = '', 3000);
+        }
+
+        function renderStudentTable(students, container) {
+            if (students.length === 0) {
+                container.innerHTML = '<tr><td colspan="6" class="px-6 py-10 text-center text-gray-500">No students found.</td></tr>';
+                return;
+            }
+            container.innerHTML = students.map(s => `
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${s.name}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${s.enrollment_number}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${s.department}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${s.batch}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${s.semester}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button class="text-red-600 hover:text-red-900 delete-student-btn" data-enroll="${s.enrollment_number}">
+                            <i class="fas fa-trash-alt"></i> Delete
+                        </button>
+                        <!-- Edit button can be added here -->
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // --- SECURITY PAGE LOGIC ---
+        function updateClock() {
+            const now = new Date();
+            clockEl.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            dateEl.textContent = now.toLocaleDateString([], { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        }
+        
+        async function handleEntry(e) {
+            e.preventDefault();
+            const enroll = enrollInput.value.trim();
+            if (!enroll) return;
+
+            entryBtn.disabled = true;
+            entryBtn.innerHTML = '<div class="spinner h-5 w-5 mx-auto"></div>';
+
+            try {
+                const data = await api('/entry', {
+                    method: 'POST',
+                    body: JSON.stringify({ enrollment_number: enroll })
+                });
+                
+                // "Msg": "Logged in", "logWithUser": { "student_id": { "name": "John" }, "status": true }
+                const studentName = data.logWithUser.student_id.name;
+                const status = data.logWithUser.status ? 'IN' : 'OUT';
+                
+                entryMsg.textContent = `Welcome, ${studentName}! (Logged ${status})`;
+                entryMsg.className = status === 'IN' ? 'text-2xl text-green-600 font-bold' : 'text-2xl text-blue-600 font-bold';
+                enrollInput.value = '';
+
+            } catch (err) {
+                entryMsg.textContent = err.message;
+                entryMsg.className = 'text-2xl text-red-600 font-bold';
+            } finally {
+                entryBtn.disabled = false;
+                entryBtn.innerHTML = '<i class="fas fa-arrow-right"></i>';
+                setTimeout(() => entryMsg.textContent = '', 4000);
+            }
+        }
+
+        // --- LOGIN / LOGOUT LOGIC ---
+        async function handleLogin(e) {
+            e.preventDefault();
+            const username = usernameInput.value;
+            const password = passwordInput.value;
+
+            try {
+                const data = await api('/login', {
+                    method: 'POST',
+                    body: JSON.stringify({ username, password })
+                });
+                
+                G_TOKEN = data.token;
+                G_USER = data.userWithoutPassword;
+                localStorage.setItem('adminToken', G_TOKEN);
+                localStorage.setItem('adminUser', JSON.stringify(G_USER));
+
+                updateNav();
+                showPage('analytics-page'); // Redirect to analytics
+                loginForm.reset();
+                loginMsg.textContent = '';
+
+            } catch (err) {
+                showMessage(loginMsg, err.message, true);
+            }
+        }
+
+        function handleLogout() {
+            G_TOKEN = null;
+            G_USER = null;
+            localStorage.removeItem('adminToken');
+            localStorage.removeItem('adminUser');
+            updateNav();
+            showPage('security-page'); // Go back to security page
+        }
+
+        // --- ANALYTICS PAGE LOGIC ---
+        async function loadAnalytics() {
+            analyticsTBody.innerHTML = '<tr><td colspan="4" class="px-6 py-10 text-center text-gray-500"><div class="spinner mx-auto"></div></td></tr>';
+            analyticsDate.textContent = new Date().toLocaleDateString([], { dateStyle: 'full' });
+
+            try {
+                const data = await api('/analytics', {}, true);
+                
+                totalInsideCount.textContent = data.totalInside;
+                
+                if (data.studentsInside.length === 0) {
+                    analyticsTBody.innerHTML = '<tr><td colspan="4" class="px-6 py-10 text-center text-gray-500">No students are currently inside.</td></tr>';
+                    return;
+                }
+
+                analyticsTBody.innerHTML = data.studentsInside.map(s => `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${s.name}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${s.dept}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${s.batch}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${s.semester}</td>
+                    </tr>
+                `).join('');
+
+            } catch (err) {
+                analyticsTBody.innerHTML = `<tr><td colspan="4" class="px-6 py-10 text-center text-red-500">Error: ${err.message}</td></tr>`;
+            }
+        }
+
+        // --- STUDENT MGMT LOGIC ---
+
+        // 1. Add Student
+        async function handleAddStudent(e) {
+            e.preventDefault();
+            const data = {
+                name: document.getElementById('add-name').value,
+                enrollment_number: document.getElementById('add-enroll').value,
+                department: document.getElementById('add-dept').value,
+                batch: document.getElementById('add-batch').value,
+                semester: parseInt(document.getElementById('add-sem').value),
+                mor_shift: document.getElementById('add-shift').value === 'true',
+                section: document.getElementById('add-section').value || undefined,
+                phone_no: document.getElementById('add-phone').value || undefined,
+                address: document.getElementById('add-address').value || undefined,
+            };
+
+            try {
+                await api('/student', { method: 'POST', body: JSON.stringify(data) }, true);
+                showMessage(addStudentMsg, 'Student added successfully!', false);
+                addStudentForm.reset();
+            } catch (err) {
+                showMessage(addStudentMsg, err.message, true);
+            }
+        }
+
+        // 2. Bulk Add
+        async function handleBulkAdd(e) {
+            e.preventDefault();
+            const fileInput = document.getElementById('csv-file');
+            if (!fileInput.files || fileInput.files.length === 0) {
+                showMessage(bulkAddMsg, 'Please select a CSV file.', true);
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            
+            bulkAddMsg.textContent = 'Uploading...';
+            bulkAddMsg.className = 'text-blue-600';
+
+            try {
+                // Bulk add doesn't use JSON, so we can't use the api() helper
+                const res = await fetch(`${API_URL}/student/bulk`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${G_TOKEN}` },
+                    body: formData
+                });
+                const data = await res.json();
+                
+                if (!res.ok) throw new Error(data.error || 'Bulk upload failed');
+
+                const msg = `Success: ${data.success}, Failed: ${data.failed}.`;
+                showMessage(bulkAddMsg, msg, data.failed > 0);
+                if(data.errors && data.errors.length > 0) {
+                    console.error('Bulk add errors:', data.errors);
+                    alert(`Upload errors occurred. Check console (F12) for details.\nFirst error: ${data.errors[0].error}`);
+                }
+                bulkAddForm.reset();
+                
+            } catch (err) {
+                showMessage(bulkAddMsg, err.message, true);
+            }
+        }
+        
+        // 3. Search Single Student
+        async function handleSearchEnroll() {
+            const enroll = searchEnrollInput.value.trim();
+            if (!enroll) return;
+            
+            studentListBody.innerHTML = '<tr><td colspan="6" class="px-6 py-10 text-center text-gray-500"><div class="spinner mx-auto"></div></td></tr>';
+            studentListCount.textContent = '';
+            searchEnrollMsg.textContent = '';
+
+            try {
+                const data = await api(`/student/${enroll}`, {}, true);
+                renderStudentTable([data.student], studentListBody);
+                studentListCount.textContent = 'Showing 1 student.';
+            } catch (err) {
+                studentListBody.innerHTML = `<tr><td colspan="6" class="px-6 py-10 text-center text-red-500">Error: ${err.message}</td></tr>`;
+                studentListCount.textContent = 'Showing 0 students.';
+            }
+        }
+
+        // 4. Filter Students
+        async function handleFilterStudents(e) {
+            e.preventDefault();
+            
+            const params = new URLSearchParams();
+            if (document.getElementById('filter-search').value) params.append('search', document.getElementById('filter-search').value);
+            if (document.getElementById('filter-dept').value) params.append('department', document.getElementById('filter-dept').value);
+            if (document.getElementById('filter-batch').value) params.append('batch', document.getElementById('filter-batch').value);
+            if (document.getElementById('filter-sem').value) params.append('semester', document.getElementById('filter-sem').value);
+            if (document.getElementById('filter-section').value) params.append('section', document.getElementById('filter-section').value);
+            if (document.getElementById('filter-shift').value) params.append('shift', document.getElementById('filter-shift').value);
+            
+            // Add default limit
+            params.append('limit', '100');
+            
+            studentListBody.innerHTML = '<tr><td colspan="6" class="px-6 py-10 text-center text-gray-500"><div class="spinner mx-auto"></div></td></tr>';
+            studentListCount.textContent = 'Searching...';
+
+            try {
+                const data = await api(`/student?${params.toString()}`, {}, true);
+                renderStudentTable(data.students, studentListBody);
+                studentListCount.textContent = `Showing ${data.count} students.`;
+            } catch (err) {
+                studentListBody.innerHTML = `<tr><td colspan="6" class="px-6 py-10 text-center text-red-500">Error: ${err.message}</td></tr>`;
+                studentListCount.textContent = 'Showing 0 students.';
+            }
+        }
+
+        // 5. Delete Student
+        async function handleDeleteStudent(e) {
+            if (!e.target.closest('.delete-student-btn')) return;
+            
+            const btn = e.target.closest('.delete-student-btn');
+            const enroll = btn.dataset.enroll;
+            
+            // NOTE: Replaced window.confirm with a simple confirm
+            if (!confirm(`Are you sure you want to delete student ${enroll}? This cannot be undone.`)) {
+                return;
+            }
+
+            try {
+                await api(`/student/${enroll}`, { method: 'DELETE' }, true);
+                // Refresh the list after deletion
+                handleFilterStudents(new Event('submit')); 
+            } catch (err) {
+                alert(`Error: ${err.message}`);
+            }
+        }
+
+        // --- INITIALIZATION ---
+        function init() {
+            // Security Page Listeners
+            setInterval(updateClock, 1000);
+            updateClock();
+            entryBtn.addEventListener('click', handleEntry);
+            enrollInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') handleEntry(e);
+            });
+
+            // Login/Logout Listeners
+            loginForm.addEventListener('submit', handleLogin);
+            navLogout.addEventListener('click', handleLogout);
+
+            // Student Mgmt Listeners
+            addStudentForm.addEventListener('submit', handleAddStudent);
+            bulkAddForm.addEventListener('submit', handleBulkAdd);
+            searchEnrollBtn.addEventListener('click', handleSearchEnroll);
+            searchEnrollInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') handleSearchEnroll();
+            });
+            filterForm.addEventListener('submit', handleFilterStudents);
+            studentListBody.addEventListener('click', handleDeleteStudent);
+
+            // Initial Setup
+            updateNav();
+            showPage('security-page'); // Start on security page
+        }
+
+        // Run app
+        init();
+    </script>
+</body>
+</html>
+
+

@@ -1,0 +1,55 @@
+/* login-styles.css (Page-Specific Styles for Login Page) */
+.login-container {
+    max-width: 28rem;
+    margin: 0 auto;
+    padding: 1rem;
+    margin-top: 2.5rem;
+}
+
+@media (min-width: 640px) {
+    .login-container {
+        padding: 1.5rem;
+    }
+}
+
+@media (min-width: 1024px) {
+    .login-container {
+        padding: 2rem;
+    }
+}
+
+.login-card {
+    background-color: white;
+    padding: 2rem;
+    border-radius: 1rem;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.login-title {
+    font-size: 1.875rem;
+    font-weight: bold;
+    text-align: center;
+    color: #4f46e5;
+    margin-bottom: 2rem;
+    margin: 0;
+}
+
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.form .submit-btn {
+    width: 100%;
+    justify-content: center;
+}
+
+.message-area {
+    height: 2rem;
+}

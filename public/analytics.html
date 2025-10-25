@@ -1,0 +1,84 @@
+<!-- analytics.html (Analytics Page) -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance System - Analytics</title>
+    <!-- Load Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="css/shared.css">
+    <link rel="stylesheet" href="css/analytics.css">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="nav">
+        <div class="nav-container">
+            <div class="nav-flex nav-justify-between nav-height">
+                <div class="nav-flex nav-items-center">
+                    <a href="index.html" class="nav-title">
+                        <i class="fas fa-clipboard-user nav-mr-2"></i>Attendance
+                    </a>
+                </div>
+                <div class="nav-flex nav-items-center nav-space-x-4">
+                    <!-- Unauthenticated links -->
+                    <a href="login.html" class="nav-link hidden" id="nav-login">
+                        <i class="fas fa-sign-in-alt nav-mr-1"></i>Admin Login
+                    </a>
+                    <!-- Authenticated links -->
+                    <a href="analytics.html" class="nav-link active" id="nav-analytics">
+                        <i class="fas fa-chart-pie nav-mr-1"></i>Analytics
+                    </a>
+                    <a href="students.html" class="nav-link hidden" id="nav-students">
+                        <i class="fas fa-users-cog nav-mr-1"></i>Manage Students
+                    </a>
+                    <a href="#" class="nav-link" id="nav-logout">
+                        <i class="fas fa-sign-out-alt nav-mr-1"></i>Logout
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Page Content: Analytics Page -->
+    <main class="main">
+        <div class="analytics-container">
+            <div class="analytics-card">
+                <h2 class="analytics-title">Today's Analytics</h2>
+                <p id="analytics-date" class="analytics-date">Loading date...</p>
+                
+                <div class="total-inside">
+                    <p class="total-text">Total Students Inside: 
+                        <span id="total-inside-count" class="count">...</span>
+                    </p>
+                </div>
+                
+                <h3 class="students-header">Students Currently Inside</h3>
+                <div class="table-wrapper">
+                    <table class="analytics-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Department</th>
+                                <th>Batch</th>
+                                <th>Semester</th>
+                            </tr>
+                        </thead>
+                        <tbody id="analytics-table-body">
+                            <tr>
+                                <td colspan="4" class="loading-cell">
+                                    <div class="spinner mx-auto"></div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- JavaScript -->
+    <script src="js/shared.js"></script>
+    <script src="js/analytics.js"></script>
+</body>
+</html>
